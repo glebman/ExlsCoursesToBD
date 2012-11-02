@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Data.SqlClient;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Data.OleDb;
 using DocumentFormat.OpenXml;
@@ -16,6 +18,8 @@ namespace ExlsCoursesToBD
     public partial class Form1 : Form
     {
         DataTable dt;
+        //        private string MyConnectionString = @"Server=GCOMPAQ\GLEB; Database=webdev_glekuz ;Trusted_Connection=Yes";
+        private const string MyConnectionString = @"Server=CHECKMATES; Database=webdev_glekuz ;Trusted_Connection=Yes";
         public Form1()
         {
             InitializeComponent();
@@ -78,11 +82,48 @@ To always use IMEX=1 is a safer way to retrieve data for mixed data columns. Con
         {
             if (fio != null || fio != String.Empty)
             {
+                // Define a regular expression for repeated words.
+                Regex rx = new Regex(@"[a-zA-Zа-яА-я]+",
+                  RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+                // Find matches.
+                MatchCollection matches = rx.Matches(fio);
+
+                label1.Text = matches[0].ToString();
+                label2.Text = matches[1].ToString();
+                label3.Text = matches[2].ToString();
+               richTextBox1.Text = ExecStoredProcedure("Persons_SelectByFullName",matches[0].ToString(),matches[1].ToString(),matches[2].ToString())
             }
 
         }
 
+  
+        public void ExecStoredProcedure(string storeProcedureName, string ln, string fn, string mn)
+        {
+            SqlConnection connection = new SqlConnection(MyConnectionString );
+            try
+            {
+                connection.Open();
+                using (SqlCommand command = new SqlCommand(storeProcedureName, connection))
+                {
+                    command.CommandType = CommandType.StoredProcedure;
+                    command.Parameters.AddWithValue("LastName", ln);
+                    command.Parameters.AddWithValue("FirstName", fn);
+                    command.Parameters.AddWithValue("MiddleName", mn);
+                    string res = command.ExecuteNonQuery();
+                }
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(exception.Message);
+            }
+            finally
+            {
+                connection.Close();
+            }
+
+        }
+       
 
 
 
