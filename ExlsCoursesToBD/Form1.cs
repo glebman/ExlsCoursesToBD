@@ -23,12 +23,15 @@ namespace ExlsCoursesToBD
         private string lName;
         private string mName;
         private string bYear;
-        private string mark;
+        private int mark;
         private string subject;
 
         private const  int subjectRowIndex =  3;
         private const int startIndex = 4;
         private const int NumberOfClasses = 24;
+
+        
+
 
         DataTable dt;
         //        private string MyConnectionString = @"Server=GCOMPAQ\GLEB; Database=webdev_glekuz ;Trusted_Connection=Yes";
@@ -52,40 +55,7 @@ namespace ExlsCoursesToBD
             FirstSubjectAdress[4] = "BS";
          }
 
-        /*
-        public void read()
-        {
-            
-            OpenFileDialog opf = new OpenFileDialog();
-            opf.Filter = "Excel (*.xlsx)|*.xlsx";
-            opf.ShowDialog();
-            string filename = opf.FileName;
-            if (filename == "")
-            {
-                MessageBox.Show("Файл не выбран");
-            }
-            else
-            {
-                OleDbConnection theConnection = new OleDbConnection(string.Format("provider=Microsoft.ACE.OLEDB.12.0;data source={0};Extended Properties=\"Excel 12.0 Xml;HDR=YES;IMEX=1;\"", filename));
-                //"HDR=Yes;" indicates that the first row contains columnnames, not data. "HDR=No;" indicates the opposite.
- /* If you want to read the column headers into the result set (using HDR=NO even though there is a header) and the column data is numeric, use IMEX=1 to avoid crash.
-To always use IMEX=1 is a safer way to retrieve data for mixed data columns. Consider the scenario that one Excel file might work fine cause that file's data causes the driver to guess one data type while another file, containing other data, causes the driver to guess another data type. This can cause your app to crash.
- /
-                theConnection.Open();
-                OleDbDataAdapter theDataAdapter = new OleDbDataAdapter("SELECT * FROM [Студенты$]", theConnection);
-                //DataSet theDS = new DataSet();
-                dt = new DataTable();
-                theDataAdapter.Fill(dt);
-                this.dataGridView1.DataSource = dt.DefaultView;
-            }
-        }
-
-        private void button1_Click(object sender, EventArgs e)
-        {
-            read();
-        }
-*/
-        
+      
         //open xml file
         private void button2_Click(object sender, EventArgs e)
         {
@@ -121,11 +91,20 @@ To always use IMEX=1 is a safer way to retrieve data for mixed data columns. Con
             {
                 
                 adressYear = "I" + ind; //year
-                PrepareBirthdayDate(XLGetCellValue(filename, sheetName, adressYear));
+                if(!PrepareBirthdayDate(XLGetCellValue(filename, sheetName, adressYear)))
+                {
+                    Logger("Wrong date at"+sheetName+" in row №"+ind);
+                    continue;
+                }
                 adressFIO = "E" + ind; //fio
                 fio = XLGetCellValue(filename, sheetName, adressFIO);
                 ParseFIO(fio);
 
+                if (!CheckPerson())
+                {
+                    Logger("Wrong person info or DB has duplicates " + sheetName + " in row №" + ind);
+                    continue;
+                }
                 GetClassAndMark(filename, sheetName, leterOfAdressubject, ind); //отсюда вызов запроса к бд
                 
                 ind++;
@@ -133,42 +112,11 @@ To always use IMEX=1 is a safer way to retrieve data for mixed data columns. Con
             
         }
 
-        private string FindFirstSubject(string fileName, string sheetName)
-        {
-            string value = null;
-            string firstSubject = "Алгоритмизация";
-
-            using (SpreadsheetDocument document = SpreadsheetDocument.Open(fileName, false))
-            {
-                WorkbookPart wbPart = document.WorkbookPart;
-
-              // Find the sheet with the supplied name, and then use that Sheet
-                // object to retrieve a reference to the appropriate worksheet.
-                Sheet theSheet = wbPart.Workbook.Descendants<Sheet>().
-                    Where(s => s.Name == sheetName).FirstOrDefault();
-
-
-                if (theSheet == null)
-                {
-                    throw new ArgumentException("sheetName");
-                }
-
-                // Retrieve a reference to the worksheet part, and then use its 
-                // Worksheet property to get a reference to the cell whose 
-                // address matches the address you supplied:
-                WorksheetPart wsPart =
-                    (WorksheetPart) (wbPart.GetPartById(theSheet.Id));
-                Cell theCell = wsPart.Worksheet.Descendants<Cell>().
-                    Where(c => c.CellValue.ToString() == firstSubject).FirstOrDefault(); //error here
-                if (theCell != null)
-                    return theCell.CellReference;
-                else //todo think about this stupid return statment
-                    return " ";
-            }
-        }
+   
 
         private void GetClassAndMark(string filename, string sheetName, string leterOfAdressubject, int ind)
         {
+            string textMark;
             //ищем предметы и оценки
             for (int i = 0; i < NumberOfClasses; i++)
             {
@@ -177,16 +125,68 @@ To always use IMEX=1 is a safer way to retrieve data for mixed data columns. Con
                 {
                     //5 10 22 курсачи
                     subject = XLGetCellValue(filename, sheetName, leterOfAdressubject + subjectRowIndex);
-                    mark = XLGetCellValue(filename, sheetName, leterOfAdressubject + ind);
-                    leterOfAdressubject = Increment(leterOfAdressubject);
+                    textMark = XLGetCellValue(filename, sheetName, leterOfAdressubject + ind);
+                    ParseMark(textMark);
 
-                    ExecStoredProcedure(" ", lName, fName, mName, subject, bYear, mark);
+                    leterOfAdressubject = Increment(leterOfAdressubject);
+                    if(i==5 || i== 10 || i ==22)
+                        ExecStoredProcedure("GradeBook_InsertByFIO_YEAR_CourseName", lName, fName, mName, subject, bYear, mark,0, false);
+                    else ExecStoredProcedure("GradeBook_InsertByFIO_YEAR_CourseName", lName, fName, mName, subject, bYear, mark,0, true);
                 }
 
             }
         }
 
-        
+        private void ParseMark(string textMark)
+        {
+            switch (textMark)
+            {
+                case "отлично":
+                    mark = 5;
+                    break;
+                case "хорошо":
+                    mark = 4; break;
+                case "удовлетворительно":
+                    mark = 3; break;
+                case "зачтено":
+                    mark = -1; break; //?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+                default:
+                    mark = 0; break;
+
+            }
+        }
+
+        private bool CheckPerson()
+        {
+            SqlConnection connection = new SqlConnection(MyConnectionString);
+            try
+            {
+                connection.Open();
+                string cmdText = String.Format("SELECT COUNT(*) FROM APersons WHERE  LastName Like N'{0}' and FirstName Like N'{1}' and MiddleName Like N'{2}' and Birthday = '{3}';",lName,fName,mName,bYear);
+                
+                using (SqlCommand command = new SqlCommand(cmdText, connection))
+                {
+
+
+                  int res = (int)command.ExecuteScalar();
+                  if (res == 1) return true;
+                    
+                    return false;
+
+                }
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(exception.Message);
+            }
+            finally
+            {
+                connection.Close();
+
+            }
+            return false;
+
+        }
 
         private void ParseFIO(string fio)
         {
@@ -217,7 +217,7 @@ To always use IMEX=1 is a safer way to retrieve data for mixed data columns. Con
         }
 
   
-        public void ExecStoredProcedure(string storeProcedureName, string ln, string fn, string mn, string courseName, string birthdayYear, string mark)
+        public void ExecStoredProcedure(string storeProcedureName, string ln, string fn, string mn, string courseName, string birthdayYear, int mark, int procentMark, bool exam = true)
         {
             SqlConnection connection = new SqlConnection(MyConnectionString );
             try
@@ -225,13 +225,16 @@ To always use IMEX=1 is a safer way to retrieve data for mixed data columns. Con
                 connection.Open();
                 using (SqlCommand command = new SqlCommand(storeProcedureName, connection))
                 {
+                    int ex = exam ? 1 : 0;
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("lName", ln);
                     command.Parameters.AddWithValue("fName", fn);
                     command.Parameters.AddWithValue("mName", mn);
                     command.Parameters.AddWithValue("year", birthdayYear);
                     command.Parameters.AddWithValue("course", courseName);
-                    command.Parameters.AddWithValue("mark", mark);
+                    command.Parameters.AddWithValue("gradeID", mark);
+                    command.Parameters.AddWithValue("mark", procentMark);
+                    command.Parameters.AddWithValue("exam",ex );
                     
                     command.ExecuteNonQuery();
                 }
@@ -247,6 +250,7 @@ To always use IMEX=1 is a safer way to retrieve data for mixed data columns. Con
 
         }
        
+
 
 
 
@@ -374,12 +378,12 @@ To always use IMEX=1 is a safer way to retrieve data for mixed data columns. Con
             DateTime oldDate = new DateTime(1900, 1, 1);
             oldDate = oldDate.AddDays(32497-2);
             string s = oldDate.ToShortDateString();
-
-
+            
+            textBox1.Text = AppDomain.CurrentDomain.BaseDirectory;
 
         }
         
-        private void PrepareBirthdayDate(string bDate)
+        private bool PrepareBirthdayDate(string bDate)
         {
             try
             {
@@ -387,12 +391,28 @@ To always use IMEX=1 is a safer way to retrieve data for mixed data columns. Con
                 DateTime date = new DateTime(1900, 1, 1);
                 date = date.AddDays(d - 2);
                 bYear = date.Year + @"-" + date.Month + @"-" + date.Day;
+                return true;
             }
             catch(Exception exception)
             {
+                
                 bYear= @"1900-01-01";
+                return false;
             }
            
+        }
+
+        public void Logger(String lines)
+        {
+
+            // Write the string to a file.append mode is enabled so that the log
+            // lines get appended to  test.txt than wiping content and writing the log
+
+            System.IO.StreamWriter file = new System.IO.StreamWriter(AppDomain.CurrentDomain.BaseDirectory+"test.txt", true);
+            file.WriteLine(lines);
+
+            file.Close();
+
         }
 
         static string Increment(string s)
