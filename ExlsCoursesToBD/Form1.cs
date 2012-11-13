@@ -17,8 +17,8 @@ namespace ExlsCoursesToBD
 {
     public partial class Form1 : Form
     {
-        private string[] SheetsNames;
-        private string[] FirstSubjectAdress;
+        private List<string> SheetsNames;
+        private List<string> FirstSubjectAdress;
         private string fName;
         private string lName;
         private string mName;
@@ -28,9 +28,9 @@ namespace ExlsCoursesToBD
 
         private const  int subjectRowIndex =  3;
         private const int startIndex = 4;
-        private const int NumberOfClasses = 24;
+        private  int NumberOfClasses = 24;
 
-        
+        private List<string> subjectsList;
 
 
         DataTable dt;
@@ -40,99 +40,172 @@ namespace ExlsCoursesToBD
         {
             InitializeComponent();
             
-            SheetsNames = new string[5];
-            SheetsNames[0] = "ВПО";
-            SheetsNames[1] = "Студенты";
-            SheetsNames[2] = "ВПО_Академка";
-            SheetsNames[3] = "Студенты_Академка";
-            SheetsNames[4] = "ВПО_Отч.";
+           
+           
+            
 
-            FirstSubjectAdress = new string[5];
-            FirstSubjectAdress[0] = "BS";
-            FirstSubjectAdress[1] = "BO";
-            FirstSubjectAdress[2] = "BS";
-            FirstSubjectAdress[3] = "BO";
-            FirstSubjectAdress[4] = "BS";
+            
          }
+        private bool InitCollections()
+        {
+            SheetsNames = new List<string>();
+            FirstSubjectAdress = new List<string>();
+            subjectsList = new List<string>();
 
+            #region pageName init
+            if (tbpage1.Text != string.Empty && tbcolumn1.Text != string.Empty)
+            {
+                SheetsNames.Add(tbpage1.Text);
+                FirstSubjectAdress.Add(tbcolumn1.Text);
+            }
+            if (tbpage2.Text != string.Empty && tbcolumn2.Text != string.Empty)
+            {
+                SheetsNames.Add(tbpage2.Text);
+                FirstSubjectAdress.Add(tbcolumn2.Text);
+            }
+            if (tbpage3.Text != string.Empty && tbcolumn3.Text != string.Empty)
+            {
+                SheetsNames.Add(tbpage3.Text);
+                FirstSubjectAdress.Add(tbcolumn3.Text);
+            }
+            if (tbpage4.Text != string.Empty && tbcolumn4.Text != string.Empty)
+            {
+                SheetsNames.Add(tbpage4.Text);
+                FirstSubjectAdress.Add(tbcolumn4.Text);
+            }
+            if (tbpage5.Text != string.Empty && tbcolumn5.Text != string.Empty)
+            {
+                SheetsNames.Add(tbpage5.Text);
+                FirstSubjectAdress.Add(tbcolumn5.Text);
+            }
+            if (tbpage6.Text != string.Empty && tbcolumn6.Text != string.Empty)
+            {
+                SheetsNames.Add(tbpage6.Text);
+                FirstSubjectAdress.Add(tbcolumn6.Text);
+            }
+            if (tbpage7.Text != string.Empty && tbcolumn7.Text != string.Empty)
+            {
+                SheetsNames.Add(tbpage7.Text);
+                FirstSubjectAdress.Add(tbcolumn7.Text);
+            }
+            if (tbpage8.Text != string.Empty && tbcolumn8.Text != string.Empty)
+            {
+                SheetsNames.Add(tbpage8.Text);
+                FirstSubjectAdress.Add(tbcolumn8.Text);
+            }
+            if (tbpage9.Text != string.Empty && tbcolumn9.Text != string.Empty)
+            {
+                SheetsNames.Add(tbpage9.Text);
+                FirstSubjectAdress.Add(tbcolumn9.Text);
+            }
+            if (tbpage10.Text != string.Empty && tbcolumn10.Text != string.Empty)
+            {
+                SheetsNames.Add(tbpage10.Text);
+                FirstSubjectAdress.Add(tbcolumn10.Text);
+            }
+            try
+            {
+                NumberOfClasses = int.Parse(tbNumberOfColumns.Text);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("In 'NumberOfClasses' field must be a number");
+                return false;
+            }
+            #endregion
+
+            return true;
+        }
       
         //open xml file
         private void button2_Click(object sender, EventArgs e)
         {
-            OpenFileDialog opf = new OpenFileDialog();
-            opf.Filter = "Excel (*.xlsx)|*.xlsx";
-            opf.ShowDialog();
-            string filename = opf.FileName;
-            if (filename == "")
+            if (InitCollections())
             {
-                MessageBox.Show("Файл не выбран");
-            }
-            else
-            {
-                for(int i=0 ; i<SheetsNames.Count() ; i++)
+                OpenFileDialog opf = new OpenFileDialog();
+                opf.Filter = "Excel (*.xlsx)|*.xlsx";
+                opf.ShowDialog();
+                string filename = opf.FileName;
+                if (filename == "")
                 {
-                    //TODO post i in cycle
-                    ReadSheet(filename, SheetsNames[0], i);
+                    MessageBox.Show("select the file");
                 }
-                
+                else
+                {
+                    for (int i = 0; i < SheetsNames.Count(); i++)
+                    {
+                        ReadSheet(filename, SheetsNames[i], i);
+                    }
+                    MessageBox.Show("Work done!");
+
+                }
             }
         }
 
         private void ReadSheet(string filename, string sheetName, int sheetNumber)
         {
-            int ind = startIndex;//3
-            string adressFIO = "E" + ind;
+            int ind = startIndex-1;//3
+            string adressFIO = "E" + (ind+1);
             string adressYear;
             string leterOfAdressubject = FirstSubjectAdress[sheetNumber];
+            string fio;
 
-            string fio = XLGetCellValue(filename, sheetName, adressFIO);
-           
-            while ( fio != null)
+            for (; ;)
             {
-                
-                adressYear = "I" + ind; //year
-                if(!PrepareBirthdayDate(XLGetCellValue(filename, sheetName, adressYear)))
-                {
-                    Logger("Wrong date at"+sheetName+" in row №"+ind);
-                    continue;
-                }
+                ind++;
                 adressFIO = "E" + ind; //fio
                 fio = XLGetCellValue(filename, sheetName, adressFIO);
+                if(string.IsNullOrEmpty(fio)) break;
                 ParseFIO(fio);
+                
+                adressYear = "I" + ind; //year
+                if (!PrepareBirthdayDate(XLGetCellValue(filename, sheetName, adressYear)))
+                {
+                    Logger(DateTime.Now + " - Wrong date, sheet:" + sheetName + ", Cell: I" + ind);
+                    continue;
+                }
 
                 if (!CheckPerson())
                 {
-                    Logger("Wrong person info or DB has duplicates " + sheetName + " in row №" + ind);
+                    Logger(DateTime.Now + " - There is no person or There are more then one person whith this FIO and year, sheet: " + sheetName + ", Cell: E" + ind);
                     continue;
                 }
-                GetClassAndMark(filename, sheetName, leterOfAdressubject, ind); //отсюда вызов запроса к бд
                 
-                ind++;
-            }
-            
+                GetClassAndMark(filename, sheetName, leterOfAdressubject, ind); //отсюда вызов запроса к бд
+             }
         }
 
    
 
         private void GetClassAndMark(string filename, string sheetName, string leterOfAdressubject, int ind)
         {
+            subjectsList = new List<string>();
             string textMark;
             //ищем предметы и оценки
             for (int i = 0; i < NumberOfClasses; i++)
             {
-                if (i == 3 || i == 16) { leterOfAdressubject = Increment(leterOfAdressubject); }
-                else
-                {
-                    //5 10 22 курсачи
-                    subject = XLGetCellValue(filename, sheetName, leterOfAdressubject + subjectRowIndex);
-                    textMark = XLGetCellValue(filename, sheetName, leterOfAdressubject + ind);
-                    ParseMark(textMark);
 
-                    leterOfAdressubject = Increment(leterOfAdressubject);
-                    if(i==5 || i== 10 || i ==22)
-                        ExecStoredProcedure("GradeBook_InsertByFIO_YEAR_CourseName", lName, fName, mName, subject, bYear, mark,0, false);
-                    else ExecStoredProcedure("GradeBook_InsertByFIO_YEAR_CourseName", lName, fName, mName, subject, bYear, mark,0, true);
-                }
+                //5 10 22 курсачи
+                subject = XLGetCellValue(filename, sheetName, leterOfAdressubject + subjectRowIndex);
+
+                textMark = XLGetCellValue(filename, sheetName, leterOfAdressubject + ind);
+                ParseMark(textMark);
+
+
+                leterOfAdressubject = Increment(leterOfAdressubject);
+
+                if (subjectsList.Contains(subject))
+                    ExecStoredProcedure("GradeBook_InsertByFIO_YEAR_CourseName", lName, fName, mName, subject,
+                                        bYear, mark, 0, 0, sheetName, ind);
+                else if (textMark == "зачтено")
+                    ExecStoredProcedure("GradeBook_InsertByFIO_YEAR_CourseName", lName, fName, mName, subject, bYear,
+                                        mark, 0, 2, sheetName, ind);
+
+                else if (!string.IsNullOrEmpty(subject))
+                    ExecStoredProcedure("GradeBook_InsertByFIO_YEAR_CourseName", lName, fName, mName, subject,
+                                        bYear, mark, 0, 1, sheetName, ind);
+                subjectsList.Add(subject);
+
 
             }
         }
@@ -149,7 +222,7 @@ namespace ExlsCoursesToBD
                 case "удовлетворительно":
                     mark = 3; break;
                 case "зачтено":
-                    mark = -1; break; //?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+                    mark = 5; break; //?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
                 default:
                     mark = 0; break;
 
@@ -177,7 +250,8 @@ namespace ExlsCoursesToBD
             }
             catch (Exception exception)
             {
-                MessageBox.Show(exception.Message);
+//                MessageBox.Show(exception.Message);
+                Logger(DateTime.Now + "   " + exception.Message + "  On operation whith -  FIO: "+lName+" "+fName+" "+mName+" year: "+bYear+" subject: "+ subject);
             }
             finally
             {
@@ -192,8 +266,16 @@ namespace ExlsCoursesToBD
         {
             if (fio != null || fio != String.Empty)
             {
+
+                string input = fio;
+                string pattern = "ё";
+                string replacement = "е";
+                Regex rgx = new Regex(pattern);
+                string result = rgx.Replace(input, replacement);
+                fio = result;
+
                 // Define a regular expression for repeated words.
-                Regex rx = new Regex(@"[a-zA-Zа-яА-я]+",
+                Regex rx = new Regex(@"[a-zA-Zа-яА-яёЁ]+",
                   RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
                 // Find matches.
@@ -216,16 +298,30 @@ namespace ExlsCoursesToBD
 
         }
 
-  
-        public void ExecStoredProcedure(string storeProcedureName, string ln, string fn, string mn, string courseName, string birthdayYear, int mark, int procentMark, bool exam = true)
+         /// <summary>
+  /// 
+  /// </summary>
+  /// <param name="storeProcedureName"></param>
+  /// <param name="ln"></param>
+  /// <param name="fn"></param>
+  /// <param name="mn"></param>
+  /// <param name="courseName"></param>
+  /// <param name="birthdayYear"></param>
+  /// <param name="mark"></param>
+  /// <param name="procentMark"></param>
+  /// <param name="examType">0-курсовик  
+  ///                        1 - экзамен
+  ///                        2 - зачет
+  /// </param>
+        public void ExecStoredProcedure(string storeProcedureName, string ln, string fn, string mn, string courseName, string birthdayYear, int mark, int procentMark, int examType, string sheetName, int rowNumber)
         {
+
             SqlConnection connection = new SqlConnection(MyConnectionString );
             try
             {
                 connection.Open();
                 using (SqlCommand command = new SqlCommand(storeProcedureName, connection))
                 {
-                    int ex = exam ? 1 : 0;
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("lName", ln);
                     command.Parameters.AddWithValue("fName", fn);
@@ -234,14 +330,16 @@ namespace ExlsCoursesToBD
                     command.Parameters.AddWithValue("course", courseName);
                     command.Parameters.AddWithValue("gradeID", mark);
                     command.Parameters.AddWithValue("mark", procentMark);
-                    command.Parameters.AddWithValue("exam",ex );
+                    command.Parameters.AddWithValue("exam", examType);
                     
                     command.ExecuteNonQuery();
                 }
             }
             catch (Exception exception)
             {
-                MessageBox.Show(exception.Message);
+                Logger(DateTime.Now + " - exeption in store procedure at sheet:" + sheetName + ", Row:" + rowNumber + ".  Exeption message:");
+                Logger(exception.Message);
+                Logger("Parameters: " + "lName - " + ln + ", fName - " + fn + ", mName - " + mn + ", year - "+ birthdayYear + ", course - "+ courseName + ", gradeID - "+ mark + ", mark - "+ procentMark);
             }
             finally
             {
@@ -249,10 +347,6 @@ namespace ExlsCoursesToBD
             }
 
         }
-       
-
-
-
 
         public static string XLGetCellValue(string fileName, string sheetName, string addressName)
         {
@@ -342,8 +436,6 @@ namespace ExlsCoursesToBD
             return value;
         }
 
-
-
         private DateTime ParseXLSDate(string date)
         {
             int y;
@@ -379,7 +471,7 @@ namespace ExlsCoursesToBD
             oldDate = oldDate.AddDays(32497-2);
             string s = oldDate.ToShortDateString();
             
-            textBox1.Text = AppDomain.CurrentDomain.BaseDirectory;
+            tbpage1.Text = AppDomain.CurrentDomain.BaseDirectory;
 
         }
         
@@ -408,7 +500,7 @@ namespace ExlsCoursesToBD
             // Write the string to a file.append mode is enabled so that the log
             // lines get appended to  test.txt than wiping content and writing the log
 
-            System.IO.StreamWriter file = new System.IO.StreamWriter(AppDomain.CurrentDomain.BaseDirectory+"test.txt", true);
+            System.IO.StreamWriter file = new System.IO.StreamWriter(AppDomain.CurrentDomain.BaseDirectory+"Logg.txt", true);
             file.WriteLine(lines);
 
             file.Close();
@@ -443,6 +535,34 @@ namespace ExlsCoursesToBD
 
             return Increment(fragment) + 'a';
 
+        }
+
+        private void btnDefaultValues_Click(object sender, EventArgs e)
+        {
+            
+            tbpage1.Text = "ВПО";
+            tbpage2.Text = "Студенты";
+            tbpage3.Text = "ВПО_Академка";
+            tbpage4.Text = "Студенты_Академка";
+            tbpage5.Text = "ВПО_Отч.";
+            tbpage6.Text = string.Empty;
+            tbpage7.Text = string.Empty;
+            tbpage8.Text = string.Empty;
+            tbpage9.Text = string.Empty;
+            tbpage10.Text = string.Empty;
+            
+            tbcolumn1.Text = "BS";
+            tbcolumn2.Text = "BO";
+            tbcolumn3.Text = "BS";
+            tbcolumn4.Text = "BO";
+            tbcolumn5.Text = "BS";
+            tbcolumn6.Text = string.Empty;
+            tbcolumn7.Text = string.Empty;
+            tbcolumn8.Text = string.Empty;
+            tbcolumn9.Text = string.Empty;
+            tbcolumn10.Text = string.Empty;
+
+            tbNumberOfColumns.Text = 24.ToString();
         }
     }
 }

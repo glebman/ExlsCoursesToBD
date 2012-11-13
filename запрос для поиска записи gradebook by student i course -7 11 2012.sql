@@ -34,10 +34,7 @@ select * from GradeBook where RecordID IN
 );
 */
 -------------------record id последний по дате
-
-
-
-/
+/*
 DECLARE @lName nvarchar(20) = N'Жукова' ;
 DECLARE @fName nvarchar(20) = N'Анастасия';
 DECLARE @mName nvarchar(20) = N'Алексеевна';
@@ -56,7 +53,7 @@ DECLARE @f INT;
 Select @f=MAX([Key]) from GradeBook;	
 select * from GradeBook where [key]= @f;
 
-
+*/
 --==================================================================================================================
 --------------------------------------------------------------------------------------------------------------------
 ---------------------------готовая процедура------------------------------------------------------------------------
@@ -70,7 +67,7 @@ CREATE PROCEDURE GradeBook_InsertByFIO_YEAR_CourseName
  @year date,
  @course nvarchar(200),
  @mark INT,
- @exam bit,
+ @exam INT,
  @gradeID INT 
 AS
 DECLARE  @studID INT;
@@ -89,11 +86,11 @@ select  TOP 1  @maxDate = StartDate,@record =  RecordID from Schedule where Reco
 		(
 			Select GroupID from StudentsToGroups where StudentID = @studID
 		)
-		AND CourseID = (Select CourseID from Courses where Name LIKE @course)
+		AND CourseID IN (Select CourseID from Courses where Name LIKE @course)
 	)
 	ORDER BY StartDate DESC;
 
-IF @exam=0
+IF @exam=0 
 BEGIN
 select TOP 1 @record2=RecordID from Schedule where   StartDate < @maxDate AND RecordID IN
 	(
@@ -101,15 +98,22 @@ select TOP 1 @record2=RecordID from Schedule where   StartDate < @maxDate AND Re
 		(
 			Select GroupID from StudentsToGroups where StudentID = @studID
 		)
-		AND CourseID = (Select CourseID from Courses where Name LIKE @course)
+		AND CourseID IN (Select CourseID from Courses where Name LIKE @course)
 	)
 	ORDER BY StartDate DESC;
 	
+	
 	INSERT INTO GradeBook  VALUES ((@f+1),@record2,@studID,@gradeID,5,@mark,NULL,NULL,NULL,NULL);
+	 
+	
 END	
 ELSE
-INSERT INTO GradeBook  VALUES ((@f+1),@record,@studID,@gradeID,4,@mark,NULL,NULL,NULL,NULL);
-
+BEGIN	
+	IF @exam=1
+		INSERT INTO GradeBook  VALUES ((@f+1),@record,@studID,@gradeID,4,@mark,NULL,NULL,NULL,NULL);
+	ELSE
+		INSERT INTO GradeBook  VALUES ((@f+1),@record2,@studID,@gradeID,6,@mark,NULL,NULL,NULL,NULL);
+END
 ---------------------------------------------------------------------------------------------------
 DECLARE @f INT;
 Select @f=MAX([Key]) from GradeBook;	
@@ -159,3 +163,88 @@ SELECT * from GradeBook where GradeTypeID = 5
 		exam	true	bool
 
 */
+--------------------------------------------------
+*/
+DECLARE @lName nvarchar(20) = N'Андреев' ;
+DECLARE @fName nvarchar(20) = N'Игорь';
+DECLARE @mName nvarchar(20) = N'Владимирович';
+DECLARE @year date = '1981-7-5'; 
+DECLARE @course nvarchar(200) = N'Операционные системы и оболочки';
+DECLARE @mark INT = 77;
+--DECLARE @record INT;
+--DECLARE @record2 INT;
+--DECLARE @studID INT;
+DECLARE @gradeID INT;
+--DECLARE @maxDate smalldatetime;
+DECLARE @exam INT = 2;
+DECLARE  @studID INT;
+DECLARE @maxDate smalldatetime;
+DECLARE @record INT;
+DECLARE @record2 INT;
+--DECLARE @gradeID INT;
+DECLARE @f INT;
+Select @f=MAX([Key]) from GradeBook;
+Select @studID =  PersonID from APersons where LastName Like @lName and FirstName Like @fName and MiddleName Like @mName and Birthday = @year;
+
+/*
+Select * from Courses where Name LIKE @course
+
+select * from GroupsToSchedule where GroupID IN
+		(
+			Select GroupID from StudentsToGroups where StudentID = @studID
+		)
+		
+select    * from Schedule where RecordID IN
+	(
+		select RecordID from GroupsToSchedule where GroupID IN
+		(
+			Select GroupID from StudentsToGroups where StudentID = @studID
+		)
+		AND CourseID IN (Select CourseID from Courses where Name LIKE @course)
+	)
+	ORDER BY StartDate DESC;
+*/
+
+
+
+
+
+
+
+
+
+
+select  TOP 1  @maxDate = StartDate,@record =  RecordID from Schedule where RecordID IN
+	(
+		select RecordID from GroupsToSchedule where GroupID IN
+		(
+			Select GroupID from StudentsToGroups where StudentID = @studID
+		)
+		AND CourseID IN (Select CourseID from Courses where Name LIKE @course)
+	)
+	ORDER BY StartDate DESC;
+
+IF @exam=0 
+BEGIN
+select TOP 1 @record2=RecordID from Schedule where   StartDate < @maxDate AND RecordID IN
+	(
+		select RecordID from GroupsToSchedule where GroupID IN
+		(
+			Select GroupID from StudentsToGroups where StudentID = @studID
+		)
+		AND CourseID IN(Select CourseID from Courses where Name LIKE @course)
+	)
+	ORDER BY StartDate DESC;
+	IF @exam=2
+	PRINT 2
+	ELSE
+	PRINT 0
+	--INSERT INTO GradeBook  VALUES ((@f+1),@record2,@studID,@gradeID,5,@mark,NULL,NULL,NULL,NULL);
+END
+ELSE 
+BEGIN 
+IF @exam=2
+	PRINT 2
+	ELSE
+PRINT 1
+END
